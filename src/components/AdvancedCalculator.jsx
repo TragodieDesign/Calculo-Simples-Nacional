@@ -71,12 +71,16 @@ export default function AdvancedCalculator() {
   const [faturamento, setFaturamento] = useState('')
   const [resultado, setResultado] = useState(null)
   const [mostrarTabela, setMostrarTabela] = useState(false)
+  const [faixaSelecionada, setFaixaSelecionada] = useState(null);
+  const [aliquotaEfetiva, setAliquotaEfetiva] = useState(null);
+
 
   const calcular = () => {
     const anexo = anexos[atividade]
     const tabela = tabelas[anexo]
-    const rbt = parseFloat(rbt12)
-    const faturamentoMes = parseFloat(faturamento)
+    const rbt = extrairNumero(rbt12)
+    const faturamentoMes = extrairNumero(faturamento)
+    
 
     if (!tabela || isNaN(rbt) || isNaN(faturamentoMes)) {
       alert('Preencha todos os campos corretamente.')
@@ -88,34 +92,72 @@ export default function AdvancedCalculator() {
     const aliquotaEfetiva = ((rbt * faixa.aliquota) - faixa.deducao) / rbt
     const imposto = (faturamentoMes * aliquotaEfetiva).toFixed(2)
 
-    setResultado(imposto >= 0 ? imposto : 0)
+    setResultado(imposto >= 0 ? imposto : 0);
+    setFaixaSelecionada(faixa);
+    setAliquotaEfetiva(aliquotaEfetiva);
   }
+
+
+  const formatarParaReal = (valor) => {
+    const somenteNumeros = valor.replace(/\D/g, '');
+    const numero = parseFloat(somenteNumeros) / 100;
+  
+    if (isNaN(numero)) return '';
+  
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  };
+
+  const extrairNumero = (valorFormatado) => {
+    const limpo = valorFormatado.replace(/\D/g, '');
+    return parseFloat(limpo) / 100;
+  };
+  
+
+
+
 
   return (
     <Card>
       <CardContent className="space-y-4">
         <div>
-          <Label>Qual é a atividade da sua empresa?</Label>
+          <Label>Qual é a atividade da sua empresa? (com respectivo anexo)</Label>
           <select value={atividade} onChange={(e) => setAtividade(e.target.value)} className="w-full border rounded p-2">
             <option value="">Selecione...</option>
             {Object.keys(anexos).map(key => (
-              <option key={key} value={key}>{key}</option>
+                <option key={key} value={key}>
+                {key} - Anexo {anexos[key]}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <Label>Faturamento dos últimos 12 meses (R$)</Label>
-          <Input value={rbt12} onChange={(e) => setRbt12(e.target.value)} />
+          <Input   value={rbt12} onChange={(e) => setRbt12(formatarParaReal(e.target.value))} />
+          
+
+
         </div>
         <div>
           <Label>Faturamento do mês (R$)</Label>
-          <Input value={faturamento} onChange={(e) => setFaturamento(e.target.value)} />
+          <Input value={faturamento} onChange={(e) => setFaturamento(formatarParaReal(e.target.value))}/>
         </div>
         <Button onClick={calcular}>Calcular</Button>
         {resultado !== null && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-green-700 font-bold">
-            Valor estimado do imposto: R$ {resultado}
+            <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-green-700 font-bold space-y-2"
+          >
+            <p>💰 Valor estimado do imposto: R$ {resultado}</p>
+            <p>📊 Faixa enquadrada: até R$ {faixaSelecionada.limite.toLocaleString()}</p>
+            <p>📈 Alíquota efetiva: {(aliquotaEfetiva * 100).toFixed(2)}%</p>
           </motion.div>
+
+
+          
         )}
         {atividade && (
           <Button onClick={() => setMostrarTabela(!mostrarTabela)}>
